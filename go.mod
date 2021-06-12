@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding
+module github.com/nairb774/terraform-provider-flipflop
 
 go 1.15
 
