@@ -23,16 +23,16 @@ resource "flipflop" "example" {
 
 ### Required
 
-- **value** (String) The current value.
+- `value` (String) The current value.
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 ### Read-Only
 
-- **a** (String) One of the prior recorded values.
-- **b** (String) One of the prior recorded values.
-- **index** (Number) Index of the currently active value. 0==a  1==b
+- `a` (String) One of the prior recorded values.
+- `b` (String) One of the prior recorded values.
+- `index` (Number) Index of the currently active value. 0==a  1==b
 
 
