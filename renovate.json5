@@ -1,0 +1,10 @@
+{
+  "extends": [
+    "config:base",
+    ":automergeMinor",
+    ":automergePr",
+    ":dependencyDashboard",
+  ],
+  // Lag behind by a week.
+  stabilityDays: 7,
+}
