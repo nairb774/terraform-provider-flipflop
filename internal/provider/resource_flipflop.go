@@ -3,99 +3,146 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/customdiff"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func resourceFlipFlop() *schema.Resource {
-	return &schema.Resource{
-		// This description is used by the documentation generator and the language server.
-		Description: "Resource that allows tracking prior values.",
+type resourceFlipFlop struct{}
 
-		CreateContext: resourceFlipFlopCreate,
-		ReadContext:   resourceFlipFlopRead,
-		UpdateContext: resourceFlipFlopUpdate,
-		DeleteContext: schema.NoopContext,
+type resourceFlipFlopModel struct {
+	ID    types.String `tfsdk:"id"`
+	Value types.String `tfsdk:"value"`
+	A     types.String `tfsdk:"a"`
+	B     types.String `tfsdk:"b"`
+	Index types.Int64  `tfsdk:"index"`
+}
 
-		Schema: map[string]*schema.Schema{
-			"value": {
-				// This description is used by the documentation generator and the language server.
-				Description:  "The current value.",
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsNotEmpty,
-			},
+var _ resource.Resource = (*resourceFlipFlop)(nil)
+var _ resource.ResourceWithModifyPlan = (*resourceFlipFlop)(nil)
 
-			"a": {
-				Description: "One of the prior recorded values.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
+func (r *resourceFlipFlop) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan resourceFlipFlopModel
 
-			"b": {
-				Description: "One of the prior recorded values.",
-				Type:        schema.TypeString,
-				Computed:    true,
-			},
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-			"index": {
-				Description: "Index of the currently active value. 0==a  1==b",
-				Type:        schema.TypeInt,
-				Computed:    true,
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+}
+
+func (r *resourceFlipFlop) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+}
+
+func (r *resourceFlipFlop) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName
+}
+
+func (r *resourceFlipFlop) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// No-op: this resource doesn't read from external state
+}
+
+func (r *resourceFlipFlop) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema.Description = "Resource that allows tracking prior values."
+	resp.Schema.Attributes = map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Description: "Resource identifier.",
+			Computed:    true,
+		},
+
+		"value": schema.StringAttribute{
+			Description: "The current value.",
+			Required:    true,
+			Validators: []validator.String{
+				stringvalidator.LengthAtLeast(1),
 			},
 		},
 
-		CustomizeDiff: customdiff.All(
-			customdiff.IfValueChange("value",
-				func(_ context.Context, old, new, _ interface{}) bool { return old != new },
-				func(_ context.Context, diff *schema.ResourceDiff, _ interface{}) error {
-					value := diff.Get("value").(string)
-					if diff.Id() == "" {
-						if err := diff.SetNew("a", value); err != nil {
-							return err
-						}
-						if err := diff.SetNew("b", value); err != nil {
-							return err
-						}
+		"a": schema.StringAttribute{
+			Description: "One of the prior recorded values.",
+			Computed:    true,
+		},
 
-						return diff.SetNew("index", 0)
-					}
+		"b": schema.StringAttribute{
+			Description: "One of the prior recorded values.",
+			Computed:    true,
+		},
 
-					index := diff.Get("index").(int)
-					// Update index:
-					index = 1 - index
-					if err := diff.SetNew("index", index); err != nil {
-						return err
-					}
-
-					var field string
-					if index == 0 {
-						field = "a"
-					} else {
-						field = "b"
-					}
-
-					if diff.NewValueKnown("value") {
-						return diff.SetNew(field, value)
-					}
-
-					return diff.SetNewComputed(field)
-				}),
-		),
+		"index": schema.Int64Attribute{
+			Description: "Index of the currently active value. 0==a  1==b",
+			Computed:    true,
+		},
 	}
 }
 
-func resourceFlipFlopCreate(ctx context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	d.SetId("ready")
-	return nil
+func (r *resourceFlipFlop) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan resourceFlipFlopModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
-func resourceFlipFlopRead(ctx context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	return nil
+func (r *resourceFlipFlop) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	// If this is a resource deletion (plan is null), do nothing
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	var plan resourceFlipFlopModel
+
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Check if state is null (create operation)
+	if req.State.Raw.IsNull() {
+		// On create: set both a and b to value with index=0
+		plan.ID = types.StringValue("ready")
+		plan.A = plan.Value
+		plan.B = plan.Value
+		plan.Index = types.Int64Value(0)
+	} else {
+		// Get current state for update
+		var state resourceFlipFlopModel
+		resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		// Preserve ID
+		plan.ID = state.ID
+
+		if !plan.Value.Equal(state.Value) {
+			// On update when value changes: flip index and update corresponding field
+			newIndex := int64(1) - state.Index.ValueInt64()
+			plan.Index = types.Int64Value(newIndex)
+
+			if newIndex == 0 {
+				plan.A = plan.Value
+				plan.B = state.B
+			} else {
+				plan.A = state.A
+				plan.B = plan.Value
+			}
+		} else {
+			// Value unchanged: preserve existing state
+			plan.A = state.A
+			plan.B = state.B
+			plan.Index = state.Index
+		}
+	}
+
+	resp.Diagnostics.Append(resp.Plan.Set(ctx, &plan)...)
 }
 
-func resourceFlipFlopUpdate(ctx context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	return nil
+func newResourceFlipFlop() resource.Resource {
+	return &resourceFlipFlop{}
 }

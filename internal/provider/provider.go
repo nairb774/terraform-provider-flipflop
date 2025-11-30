@@ -3,14 +3,16 @@ package provider
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
 func init() {
 	// Set descriptions to support markdown syntax, this will be used in document generation
 	// and the language server.
-	schema.DescriptionKind = schema.StringMarkdown
+	// schema.DescriptionKind = schema.StringMarkdown
 
 	// Customize the content of descriptions when output. For example you can add defaults on
 	// to the exported descriptions if present.
@@ -23,24 +25,36 @@ func init() {
 	// }
 }
 
-func New(version string) func() *schema.Provider {
-	return func() *schema.Provider {
-		p := &schema.Provider{
-			ResourcesMap: map[string]*schema.Resource{
-				"flipflop": resourceFlipFlop(),
-			},
-		}
+type flipflopProvider struct {
+	version string
+}
 
-		p.ConfigureContextFunc = configure(version, p)
+var _ provider.Provider = (*flipflopProvider)(nil)
 
-		return p
+func (p *flipflopProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+}
+
+func (p *flipflopProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return nil
+}
+
+func (p *flipflopProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "flipflop"
+	resp.Version = p.version
+}
+
+func (p *flipflopProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		newResourceFlipFlop,
 	}
 }
 
-type apiClient struct{}
+func (p *flipflopProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{}
+}
 
-func configure(version string, p *schema.Provider) func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-	return func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
-		return &apiClient{}, nil
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &flipflopProvider{version: version}
 	}
 }
