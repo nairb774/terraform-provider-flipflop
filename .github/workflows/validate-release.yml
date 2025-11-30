@@ -1,0 +1,52 @@
+name: Validate Release Config
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.releaserc.yml'
+      - '.github/workflows/semantic-release.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 'lts/*'
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate semantic-release config
+        run: |
+          # Run semantic-release in dry-run mode to validate configuration
+          # Use --no-ci to allow running on non-release branches
+          npx semantic-release --dry-run --no-ci --branches main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test doc generation
+        run: |
+          go generate
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            echo "✓ Documentation generation successful"
+            git diff docs/
+          else
+            echo "✓ Documentation is up to date"
+          fi
