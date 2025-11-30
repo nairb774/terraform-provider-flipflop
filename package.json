@@ -1,0 +1,19 @@
+{
+  "name": "terraform-provider-flipflop",
+  "version": "0.0.0-development",
+  "private": true,
+  "description": "Terraform provider for flip-flop resources",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nairb774/terraform-provider-flipflop.git"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^18.0.0",
+    "@commitlint/config-conventional": "^18.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.0.0",
+    "semantic-release": "^23.0.0"
+  }
+}

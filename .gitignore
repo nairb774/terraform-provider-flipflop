@@ -27,6 +27,13 @@ website/node_modules
 
 website/vendor
 
+# Node.js dependencies for semantic-release
+node_modules/
+package-lock.json
+
+# CHANGELOG is now managed via GitHub release notes
+CHANGELOG.md
+
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
 !command/test-fixtures/**/.terraform/

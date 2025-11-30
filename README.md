@@ -74,3 +74,11 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```sh
 $ make testacc
 ```
+
+## Release Process
+
+Releases are automatically created when commits are pushed to the `main` branch using [semantic-release](https://semantic-release.gitbook.io/). Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+- `feat:` - New feature (minor version bump)
+- `fix:` - Bug fix (patch version bump)
+- `feat!:` or `BREAKING CHANGE:` - Breaking change (major version bump)
