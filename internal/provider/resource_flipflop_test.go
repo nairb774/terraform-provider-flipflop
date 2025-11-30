@@ -362,6 +362,7 @@ func TestAccResourceFlipFlop_UnknownAtPlanTime(t *testing.T) {
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("value")),
 						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("index")),
+						plancheck.ExpectKnownValue("flipflop.ff", tfjsonpath.New("a"), knownvalue.StringExact("initial")),
 						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("b")),
 						plancheck.ExpectKnownValue("flipflop.ff", tfjsonpath.New("id"), knownvalue.StringExact("ready")),
 					},

@@ -115,7 +115,21 @@ func (r *resourceFlipFlop) ModifyPlan(ctx context.Context, req resource.ModifyPl
 		// Preserve ID
 		plan.ID = state.ID
 
-		if !plan.Value.Equal(state.Value) {
+		// If value is unknown, we don't know if it will change or which slot to update
+		if plan.Value.IsUnknown() {
+			// The slot opposite to the current index is preserved (known)
+			// The current index slot and index itself are unknown
+			if state.Index.ValueInt64() == 0 {
+				// Current is A, so A is known and B is unknown
+				plan.A = state.A
+				plan.B = types.StringUnknown()
+			} else {
+				// Current is B, so A is unknown and B is known
+				plan.A = types.StringUnknown()
+				plan.B = state.B
+			}
+			plan.Index = types.Int64Unknown()
+		} else if !plan.Value.Equal(state.Value) {
 			// On update when value changes: flip index and update corresponding field
 			newIndex := int64(1) - state.Index.ValueInt64()
 			plan.Index = types.Int64Value(newIndex)
