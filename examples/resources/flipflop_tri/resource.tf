@@ -1,48 +1,72 @@
-# Tri-State Flipflop Example
+# Django SECRET_KEY Rotation Example
 #
-# The tri-state flipflop resource maintains three values (a, b, c) and can handle
-# unknown values at plan time. This is useful when the trigger value depends
-# on external data or computed values that aren't known until apply time.
+# This example demonstrates using the tri-state flipflop to implement
+# zero-downtime rotation of Django SECRET_KEY with fallback keys.
 #
-# Unlike the standard two-state flipflop, the tri-state version provides three
-# indices: top_index, middle_index, and bottom_index, allowing for more complex
-# rotation patterns.
+# Django supports SECRET_KEY_FALLBACKS for backward compatibility during rotation.
+# The tri-state flipflop maintains three keys and rotates them gradually:
+# - middle_index: The current active SECRET_KEY (second most recent)
+# - top_index & bottom_index: The fallback keys (newest and oldest)
+#
+# This ensures that sessions/tokens signed with any of the three keys remain valid
+# during the rotation period, providing forward-backward compatibility.
 
-# Example using external data that may be unknown at plan time
-data "external" "rotation_trigger" {
-  program = ["bash", "-c", "echo '{\"timestamp\":\"'$(date +%s)'\"}'"]
+# Trigger rotation every 90 days
+resource "time_rotating" "secret_key_rotation" {
+  rotation_days = 90
 }
 
-# The tri-state flipflop can handle unknown values
-resource "flipflop_tri" "example" {
-  value = data.external.rotation_trigger.result.timestamp
+# Encode configuration through the tri-state flipflop
+resource "flipflop_tri" "secret_key" {
+  value = jsonencode({
+    trigger = time_rotating.secret_key_rotation.id
+    length  = 50
+  })
 }
 
-# All three states are tracked
-output "state_a" {
-  value = flipflop_tri.example.a
+# Decode configurations for all three states
+locals {
+  secret_configs = [
+    jsondecode(flipflop_tri.secret_key.a),
+    jsondecode(flipflop_tri.secret_key.b),
+    jsondecode(flipflop_tri.secret_key.c),
+  ]
 }
 
-output "state_b" {
-  value = flipflop_tri.example.b
+# Generate three secret keys
+resource "random_password" "secret_keys" {
+  count = length(local.secret_configs)
+
+  length  = local.secret_configs[count.index].length
+  special = false # Django SECRET_KEY typically uses alphanumeric only
+
+  keepers = local.secret_configs[count.index]
 }
 
-output "state_c" {
-  value = flipflop_tri.example.c
+# The middle key is the current active SECRET_KEY
+output "django_secret_key" {
+  value       = random_password.secret_keys[flipflop_tri.secret_key.middle_index].result
+  sensitive   = true
+  description = "Current active SECRET_KEY for Django settings"
 }
 
-# The three indices indicate rotation order
-output "top_index" {
-  value       = flipflop_tri.example.top_index
-  description = "Most recently updated state (0=a, 1=b, 2=c)"
+# The top and bottom keys are the fallbacks
+output "django_secret_key_fallbacks" {
+  value = [
+    random_password.secret_keys[flipflop_tri.secret_key.top_index].result,
+    random_password.secret_keys[flipflop_tri.secret_key.bottom_index].result,
+  ]
+  sensitive   = true
+  description = "SECRET_KEY_FALLBACKS list for Django settings"
 }
 
-output "middle_index" {
-  value       = flipflop_tri.example.middle_index
-  description = "Second most recently updated state"
-}
-
-output "bottom_index" {
-  value       = flipflop_tri.example.bottom_index
-  description = "Least recently updated state"
-}
+# Example Django settings usage (as a comment for reference):
+# SECRET_KEY = var.django_secret_key
+# SECRET_KEY_FALLBACKS = var.django_secret_key_fallbacks
+#
+# During rotation:
+# 1. New key is generated and becomes top_index
+# 2. Previous active key (middle_index) remains the same
+# 3. Oldest key (bottom_index) is still valid as a fallback
+# 4. On next rotation, middle_index updates to the previous top_index
+# 5. This ensures smooth rotation without invalidating sessions
