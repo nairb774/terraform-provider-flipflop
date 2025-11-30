@@ -46,6 +46,7 @@ func (p *flipflopProvider) Metadata(ctx context.Context, req provider.MetadataRe
 func (p *flipflopProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		newResourceFlipFlop,
+		newResourceFlipFlopTri,
 	}
 }
 
