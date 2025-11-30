@@ -460,3 +460,55 @@ func TestAccResourceFlipFlopTri_KnownAtPlanTime(t *testing.T) {
 		},
 	})
 }
+
+func TestAccResourceFlipFlopTri_UnknownAtPlanTime(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+					resource "flipflop_tri" "ff" {
+						value = "initial"
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "id", "ready"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "value", "initial"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "top_index", "0"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "middle_index", "1"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "bottom_index", "2"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "a", "initial"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "b", "initial"),
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "c", "initial"),
+				),
+			},
+			{
+				Config: `
+					resource "flipflop_tri" "ff" {
+						value = timestamp()
+					}
+				`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectUnknownValue("flipflop_tri.ff", tfjsonpath.New("value")),
+						plancheck.ExpectUnknownValue("flipflop_tri.ff", tfjsonpath.New("top_index")),
+						plancheck.ExpectUnknownValue("flipflop_tri.ff", tfjsonpath.New("middle_index")),
+						plancheck.ExpectUnknownValue("flipflop_tri.ff", tfjsonpath.New("bottom_index")),
+						plancheck.ExpectKnownValue("flipflop_tri.ff", tfjsonpath.New("a"), knownvalue.StringExact("initial")),
+						plancheck.ExpectKnownValue("flipflop_tri.ff", tfjsonpath.New("b"), knownvalue.StringExact("initial")),
+						plancheck.ExpectUnknownValue("flipflop_tri.ff", tfjsonpath.New("c")),
+						plancheck.ExpectKnownValue("flipflop_tri.ff", tfjsonpath.New("id"), knownvalue.StringExact("ready")),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop_tri.ff", "id", "ready"),
+					resource.TestCheckResourceAttrSet("flipflop_tri.ff", "value"),
+					resource.TestCheckResourceAttrSet("flipflop_tri.ff", "a"),
+					resource.TestCheckResourceAttrSet("flipflop_tri.ff", "b"),
+					resource.TestCheckResourceAttrSet("flipflop_tri.ff", "c"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}

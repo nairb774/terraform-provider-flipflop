@@ -136,7 +136,32 @@ func (r *resourceFlipFlopTri) ModifyPlan(ctx context.Context, req resource.Modif
 		// Preserve ID
 		plan.ID = state.ID
 
-		if !plan.Value.Equal(state.Value) {
+		// If value is unknown, we don't know if it will change or which slot to update
+		if plan.Value.IsUnknown() {
+			// If the value changes, the slot pointed to by bottom_index will become the new top and be updated
+			// The slots pointed to by top_index and middle_index will be preserved (known)
+			// All indices are unknown since we don't know if the value will change
+			switch state.BottomIndex.ValueInt64() {
+			case 0:
+				// A is bottom (will become new top if value changes), B and C are known
+				plan.A = types.StringUnknown()
+				plan.B = state.B
+				plan.C = state.C
+			case 1:
+				// B is bottom (will become new top if value changes), A and C are known
+				plan.A = state.A
+				plan.B = types.StringUnknown()
+				plan.C = state.C
+			case 2:
+				// C is bottom (will become new top if value changes), A and B are known
+				plan.A = state.A
+				plan.B = state.B
+				plan.C = types.StringUnknown()
+			}
+			plan.TopIndex = types.Int64Unknown()
+			plan.MiddleIndex = types.Int64Unknown()
+			plan.BottomIndex = types.Int64Unknown()
+		} else if !plan.Value.Equal(state.Value) {
 			// On update when value changes: rotate indices
 			// New top is what was bottom, new middle is what was top, new bottom is what was middle
 			plan.TopIndex = state.BottomIndex
