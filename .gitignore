@@ -29,7 +29,6 @@ website/vendor
 
 # Node.js dependencies for semantic-release
 node_modules/
-package-lock.json
 
 # CHANGELOG is now managed via GitHub release notes
 CHANGELOG.md
