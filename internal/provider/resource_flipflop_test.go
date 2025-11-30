@@ -333,3 +333,47 @@ func TestAccResourceFlipFlop_KnownAtPlanTime(t *testing.T) {
 		},
 	})
 }
+
+func TestAccResourceFlipFlop_UnknownAtPlanTime(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+					resource "flipflop" "ff" {
+						value = "initial"
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop.ff", "id", "ready"),
+					resource.TestCheckResourceAttr("flipflop.ff", "value", "initial"),
+					resource.TestCheckResourceAttr("flipflop.ff", "index", "0"),
+					resource.TestCheckResourceAttr("flipflop.ff", "a", "initial"),
+					resource.TestCheckResourceAttr("flipflop.ff", "b", "initial"),
+				),
+			},
+			{
+				Config: `
+					resource "flipflop" "ff" {
+						value = timestamp()
+					}
+				`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("value")),
+						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("index")),
+						plancheck.ExpectUnknownValue("flipflop.ff", tfjsonpath.New("b")),
+						plancheck.ExpectKnownValue("flipflop.ff", tfjsonpath.New("id"), knownvalue.StringExact("ready")),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop.ff", "id", "ready"),
+					resource.TestCheckResourceAttrSet("flipflop.ff", "value"),
+					resource.TestCheckResourceAttrSet("flipflop.ff", "a"),
+					resource.TestCheckResourceAttrSet("flipflop.ff", "b"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
