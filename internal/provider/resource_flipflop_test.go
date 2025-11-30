@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -85,7 +84,7 @@ func TestAccResourceFlipFlop(t *testing.T) {
 	})
 }
 
-func TestAccResourceFlipFlop_Validation(t *testing.T) {
+func TestAccResourceFlipFlop_EmptyValue(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -95,7 +94,41 @@ func TestAccResourceFlipFlop_Validation(t *testing.T) {
 						value = ""
 					}
 				`,
-				ExpectError: regexp.MustCompile("Attribute value string length must be at least 1"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop.ff", "id", "ready"),
+					resource.TestCheckResourceAttr("flipflop.ff", "value", ""),
+					resource.TestCheckResourceAttr("flipflop.ff", "index", "0"),
+					resource.TestCheckResourceAttr("flipflop.ff", "a", ""),
+					resource.TestCheckResourceAttr("flipflop.ff", "b", ""),
+				),
+			},
+			{
+				Config: `
+					resource "flipflop" "ff" {
+						value = "something"
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop.ff", "id", "ready"),
+					resource.TestCheckResourceAttr("flipflop.ff", "value", "something"),
+					resource.TestCheckResourceAttr("flipflop.ff", "index", "1"),
+					resource.TestCheckResourceAttr("flipflop.ff", "a", ""),
+					resource.TestCheckResourceAttr("flipflop.ff", "b", "something"),
+				),
+			},
+			{
+				Config: `
+					resource "flipflop" "ff" {
+						value = ""
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("flipflop.ff", "id", "ready"),
+					resource.TestCheckResourceAttr("flipflop.ff", "value", ""),
+					resource.TestCheckResourceAttr("flipflop.ff", "index", "0"),
+					resource.TestCheckResourceAttr("flipflop.ff", "a", ""),
+					resource.TestCheckResourceAttr("flipflop.ff", "b", "something"),
+				),
 			},
 		},
 	})
