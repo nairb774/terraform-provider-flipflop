@@ -23,9 +23,19 @@ locals {
   rotation_values = [flipflop.rotation.a, flipflop.rotation.b]
 }
 
+# Use null_resource to capture the rotation values as triggers
+# This ensures the access keys are recreated when the flipflop values change
+resource "null_resource" "rotation" {
+  count = length(local.rotation_values)
+  triggers = {
+    user  = aws_iam_user.example.name
+    value = local.rotation_values[count.index]
+  }
+}
+
 resource "aws_iam_access_key" "rotation" {
   count = length(local.rotation_values)
-  user  = aws_iam_user.example.name
+  user  = null_resource.rotation[count.index].triggers.user
 
   # This lifecycle ensures keys are created before old ones are destroyed
   lifecycle {

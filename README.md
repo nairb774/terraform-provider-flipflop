@@ -41,23 +41,37 @@ resource "flipflop" "rotation" {
   value = time_rotating.rotation.id
 }
 
-# Create two access keys
-resource "aws_iam_access_key" "rotation" {
-  count = 2  # Always create exactly 2
-  user  = aws_iam_user.example.name
-}
-
-# Use the currently active key
+# Create two access keys, one for each flipflop state
 locals {
-  active_key = aws_iam_access_key.rotation[flipflop.rotation.index]
+  rotation_values = [flipflop.rotation.a, flipflop.rotation.b]
 }
 
-output "access_key_id" {
-  value = local.active_key.id
+# Use null_resource to capture the rotation values as triggers
+# This ensures the access keys are recreated when the flipflop values change
+resource "null_resource" "rotation" {
+  count = length(local.rotation_values)
+  triggers = {
+    user  = aws_iam_user.example.name
+    value = local.rotation_values[count.index]
+  }
 }
 
-output "secret_access_key" {
-  value     = local.active_key.secret
+resource "aws_iam_access_key" "rotation" {
+  count = length(local.rotation_values)
+  user  = null_resource.rotation[count.index].triggers.user
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Output the currently active access key
+output "active_access_key_id" {
+  value = aws_iam_access_key.rotation[flipflop.rotation.index].id
+}
+
+output "active_secret_access_key" {
+  value     = aws_iam_access_key.rotation[flipflop.rotation.index].secret
   sensitive = true
 }
 ```
