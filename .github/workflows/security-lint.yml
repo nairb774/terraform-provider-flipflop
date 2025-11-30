@@ -1,0 +1,43 @@
+name: Security Linting
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    name: GitHub Actions Security (zizmor)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          persist-credentials: false
+
+      - name: Verify shellcheck is available
+        run: |
+          # Verify shellcheck is available for zizmor to use
+          # shellcheck is pre-installed on GitHub Actions ubuntu runners
+          shellcheck --version
+
+      - name: Install zizmor
+        run: |
+          cargo install zizmor --locked
+
+      - name: Run zizmor with shellcheck support
+        run: |
+          # zizmor will automatically use shellcheck if available
+          zizmor --pedantic .github/workflows/
