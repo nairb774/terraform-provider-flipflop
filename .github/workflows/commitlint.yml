@@ -23,4 +23,4 @@ jobs:
           npm install --save-dev @commitlint/cli @commitlint/config-conventional
 
       - name: Validate PR commits
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+        run: npx commitlint --config .github/.commitlintrc.json --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
