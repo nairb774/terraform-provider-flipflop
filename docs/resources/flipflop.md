@@ -48,5 +48,3 @@ output "active_index" {
 - `b` (String) One of the prior recorded values.
 - `id` (String) Resource identifier.
 - `index` (Number) Index of the currently active value. 0==a  1==b
-
-

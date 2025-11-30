@@ -103,5 +103,3 @@ output "django_secret_key_fallbacks" {
 - `id` (String) Resource identifier.
 - `middle_index` (Number) Index of the second most recent value. Points to a (0), b (1), or c (2).
 - `top_index` (Number) Index of the most recent value. Points to a (0), b (1), or c (2).
-
-
