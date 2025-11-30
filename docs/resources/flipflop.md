@@ -13,8 +13,25 @@ Resource that allows tracking prior values.
 ## Example Usage
 
 ```terraform
+# Basic flipflop usage
+# The flipflop resource tracks state changes and maintains two values (a and b)
+# When the value changes, one of the outputs updates while the other remains stable
 resource "flipflop" "example" {
-  value = "foo"
+  value = "trigger-value"
+}
+
+# Outputs demonstrate the two-state tracking
+output "state_a" {
+  value = flipflop.example.a
+}
+
+output "state_b" {
+  value = flipflop.example.b
+}
+
+# The index indicates which state is currently active (0 = a, 1 = b)
+output "active_index" {
+  value = flipflop.example.index
 }
 ```
 
@@ -29,7 +46,7 @@ resource "flipflop" "example" {
 
 - `a` (String) One of the prior recorded values.
 - `b` (String) One of the prior recorded values.
-- `id` (String) The ID of this resource.
+- `id` (String) Resource identifier.
 - `index` (Number) Index of the currently active value. 0==a  1==b
 
 
