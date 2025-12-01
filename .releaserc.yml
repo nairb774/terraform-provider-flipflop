@@ -1,0 +1,21 @@
+preset: angular
+branches:
+  - main
+tagFormat: 'v${version}'
+plugins:
+  - '@semantic-release/commit-analyzer'
+  - '@semantic-release/release-notes-generator'
+  - - '@semantic-release/exec'
+    - prepareCmd: 'go generate'
+  - - '@semantic-release/git'
+    - assets:
+        - 'docs/**/*.md'
+      message: 'chore(release): update documentation for ${nextRelease.version} [skip ci]'
+  - - '@semantic-release/github'
+    - successComment: false
+      failComment: false
+      releasedLabels: false
+  - - '@semantic-release/exec'
+    - publishCmd: |
+        echo "${nextRelease.notes}" > /tmp/release-notes.md
+        goreleaser release --release-notes /tmp/release-notes.md --clean

@@ -1,0 +1,62 @@
+name: Validate Release Config
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.releaserc.yml'
+      - '.github/workflows/semantic-release.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  validate:
+    name: Validate Release Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Set up Terraform
+        uses: ./.github/actions/setup-tfenv
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate semantic-release config
+        run: |
+          # Run semantic-release in dry-run mode to validate configuration
+          # Use --no-ci to allow running on non-release branches
+          npx semantic-release --dry-run --no-ci --branches main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test doc generation
+        run: |
+          go generate
+          if [ -n "$(git status --porcelain docs/)" ]; then
+            echo "✓ Documentation generation successful"
+            git diff docs/
+          else
+            echo "✓ Documentation is up to date"
+          fi

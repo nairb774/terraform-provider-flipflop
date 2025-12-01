@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/nairb774/terraform-provider-flipflop/internal/provider"
 )
 
@@ -17,7 +17,7 @@ import (
 
 // Run the docs generation tool, check its repository for more information on how it works and how docs
 // can be customized.
-//go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+//go:generate go tool tfplugindocs
 
 var (
 	// these will be set by the goreleaser configuration
@@ -28,22 +28,25 @@ var (
 	// commit  string = ""
 )
 
+const address = "registry.terraform.io/nairb774/flipflop"
+
 func main() {
 	var debugMode bool
 
 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{ProviderFunc: provider.New(version)}
+	ctx := context.Background()
+	err := providerserver.Serve(
+		ctx,
+		provider.New(version),
+		providerserver.ServeOpts{
+			Address: address,
+			Debug:   debugMode,
+		},
+	)
 
-	if debugMode {
-		// TODO: update this string with the full name of your provider as used in your configs
-		err := plugin.Debug(context.Background(), "registry.terraform.io/nairb774/flipflop", opts)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		return
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	plugin.Serve(opts)
 }

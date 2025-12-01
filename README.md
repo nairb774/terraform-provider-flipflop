@@ -13,13 +13,24 @@ $ go install
 
 ## Using the provider
 
-Example usage to use `time_rotating` to trigger automatic rotation of a
-`aws_iam_access_key` resource:
+The flipflop provider helps implement zero-downtime rolling rotations in Terraform.
+It maintains two states (a and b) and tracks which one is currently active, allowing
+you to rotate resources gradually instead of all at once.
+
+### Basic Concept
+
+When you change the `value` input:
+1. The flipflop updates one output (`a` or `b`) to match the new value
+2. The other output remains unchanged (retains the old value)
+3. The `index` output indicates which is active (0 for `a`, 1 for `b`)
+
+This enables you to create two instances of a resource and only invalidate one at a time.
+
+### Simple IAM Access Key Rotation
 
 ```terraform
-
-resource "aws_iam_user" "rotation" {
-  name = "some-user"
+resource "aws_iam_user" "example" {
+  name = "rotating-user"
 }
 
 resource "time_rotating" "rotation" {
@@ -30,14 +41,17 @@ resource "flipflop" "rotation" {
   value = time_rotating.rotation.id
 }
 
+# Create two access keys, one for each flipflop state
 locals {
   rotation_values = [flipflop.rotation.a, flipflop.rotation.b]
 }
 
+# Use null_resource to capture the rotation values as triggers
+# This ensures the access keys are recreated when the flipflop values change
 resource "null_resource" "rotation" {
   count = length(local.rotation_values)
   triggers = {
-    user  = aws_iam_user.rotation.name
+    user  = aws_iam_user.example.name
     value = local.rotation_values[count.index]
   }
 }
@@ -45,16 +59,60 @@ resource "null_resource" "rotation" {
 resource "aws_iam_access_key" "rotation" {
   count = length(local.rotation_values)
   user  = null_resource.rotation[count.index].triggers.user
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Output the currently active access key
+output "active_access_key_id" {
+  value = aws_iam_access_key.rotation[flipflop.rotation.index].id
+}
+
+output "active_secret_access_key" {
+  value     = aws_iam_access_key.rotation[flipflop.rotation.index].secret
+  sensitive = true
+}
+```
+
+### Advanced Pattern: Encoding Configuration
+
+For more complex scenarios, encode all configuration through the flipflop
+using `jsonencode()`. This ensures configuration changes also rotate gradually:
+
+```terraform
+resource "flipflop" "config" {
+  value = jsonencode({
+    trigger = time_rotating.rotation.id
+    length  = 32
+    special = true
+  })
 }
 
 locals {
-  rotated_access_key = aws_iam_access_key.rotation[flipflop.rotation.index]
+  configs = [
+    jsondecode(flipflop.config.a),
+    jsondecode(flipflop.config.b),
+  ]
 }
 
+resource "random_password" "rotating" {
+  count   = length(local.configs)
+  length  = local.configs[count.index].length
+  special = local.configs[count.index].special
+
+  keepers = local.configs[count.index]
+}
+
+output "current_password" {
+  value     = random_password.rotating[flipflop.config.index].result
+  sensitive = true
+}
 ```
 
-While this is quite verbose, the complication comes from needing to get
-Terraform to only invalidate one leg of the dependency graph at a time.
+See the `examples/` directory for more detailed use cases including password rotation
+and handling unknown values with the tri-state variant.
 
 ## Developing the Provider
 
@@ -74,3 +132,11 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```sh
 $ make testacc
 ```
+
+## Release Process
+
+Releases are automatically created when commits are pushed to the `main` branch using [semantic-release](https://semantic-release.gitbook.io/). Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+- `feat:` - New feature (minor version bump)
+- `fix:` - Bug fix (patch version bump)
+- `feat!:` or `BREAKING CHANGE:` - Breaking change (major version bump)

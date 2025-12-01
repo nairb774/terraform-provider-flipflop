@@ -1,6 +1,7 @@
 *.dll
 *.exe
 .DS_Store
+terraform-provider-flipflop
 example.tf
 terraform.tfplan
 terraform.tfstate
@@ -26,6 +27,12 @@ website/node_modules
 *.iml
 
 website/vendor
+
+# Node.js dependencies for semantic-release
+node_modules/
+
+# CHANGELOG is now managed via GitHub release notes
+CHANGELOG.md
 
 # Test exclusions
 !command/test-fixtures/**/*.tfstate
