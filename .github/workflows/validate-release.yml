@@ -7,6 +7,8 @@ on:
     paths:
       - '.releaserc.yml'
       - '.github/workflows/semantic-release.yml'
+      - '.github/goreleaser-plugin.js'
+      - '.goreleaser.yml'
       - 'package.json'
       - 'package-lock.json'
 
@@ -28,20 +30,28 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
         with:
           node-version-file: '.nvmrc'
+          package-manager-cache: false
 
       - name: Set up Go
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'go.mod'
+          cache: false
 
       - name: Set up Terraform
         uses: ./.github/actions/setup-tfenv
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Set up GoReleaser
+        uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 # v5.0.0
+        with:
+          install-only: true
+          version: latest
 
       - name: Validate semantic-release config
         run: |
@@ -60,3 +70,9 @@ jobs:
           else
             echo "✓ Documentation is up to date"
           fi
+
+      - name: Validate goreleaser config
+        run: |
+          # Check goreleaser configuration is valid
+          goreleaser check
+          echo "✓ GoReleaser configuration is valid"
