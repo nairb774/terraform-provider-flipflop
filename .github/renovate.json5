@@ -1,14 +1,13 @@
 {
-  "extends": [
-    "config:base",
-    ":automergeMinor",
-    ":automergePr",
-    ":dependencyDashboard",
+  extends: [
+    'config:recommended',
+    ':automergeMinor',
+    ':automergePr',
+    ':dependencyDashboard',
   ],
-  // Lag behind by a week.
-  stabilityDays: 7,
+  minimumReleaseAge: '7 days',
   postUpdateOptions: [
-    "gomodTidy",
-    "gomodUpdateImportPaths",
+    'gomodTidy',
+    'gomodUpdateImportPaths',
   ],
 }
