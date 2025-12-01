@@ -2,8 +2,6 @@ name: Security Linting
 
 on:
   pull_request:
-    paths:
-      - '.github/workflows/**'
   push:
     branches:
       - main
