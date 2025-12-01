@@ -12,15 +12,16 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   zizmor:
     name: GitHub Actions Security (zizmor)
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write # To upload to GitHub Advanced Security
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -33,11 +34,7 @@ jobs:
           # shellcheck is pre-installed on GitHub Actions ubuntu runners
           shellcheck --version
 
-      - name: Install zizmor
-        run: |
-          cargo install zizmor --locked
-
-      - name: Run zizmor with shellcheck support
-        run: |
-          # zizmor will automatically use shellcheck if available
-          zizmor --pedantic .github/workflows/
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@e639db99335bc9038abc0e066dfcd72e23d26fb4 # v0.3.0
+        with:
+          persona: pedantic

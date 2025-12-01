@@ -1,27 +1,11 @@
-# This GitHub action runs your tests for each commit push and/or PR. Optionally
-# you can turn it on using a cron schedule for regular testing.
-#
 name: Tests
 on:
   pull_request:
-    paths-ignore:
-      - 'README.md'
   push:
-    paths-ignore:
-      - 'README.md'
-  # For systems with an upstream API that could drift unexpectedly (like most SaaS systems, etc.),
-  # we recommend testing at a regular interval not necessarily tied to code changes. This will
-  # ensure you are alerted to something breaking due to an API change, even if the code did not
-  # change.
-  # schedule:
-  #   - cron: '0 13 * * *'
+    branches:
+      - main
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   # ensure the code builds...
@@ -39,16 +23,12 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'go.mod'
-          cache: true
-        id: go
 
       - name: Get dependencies
-        run: |
-          go mod download
+        run: go mod download
 
       - name: Build
-        run: |
-          go build -v .
+        run: go build ./...
 
   generate:
     name: Check Generated Code
@@ -63,13 +43,9 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
-        with:
-          terraform_version_file: '.terraform-version'
-          terraform_wrapper: false
+        uses: ./.github/actions/setup-tfenv
 
       - name: Generate code
         run: go generate ./...
@@ -115,8 +91,6 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'go.mod'
-          cache: true
-        id: go
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
@@ -125,18 +99,8 @@ jobs:
           terraform_wrapper: false
 
       - name: Get dependencies
-        run: |
-          go mod download
+        run: go mod download
 
-      - name: TF acceptance tests
+      - name: TF tests
         timeout-minutes: 10
-        env:
-          TF_ACC: "1"
-
-          # Set whatever additional acceptance test env vars here. You can
-          # optionally use data from your repository secrets using the
-          # following syntax:
-          # SOME_VAR: ${{ secrets.SOME_VAR }}
-
-        run: |
-          go test -v -cover ./internal/provider/
+        run: go test -v -cover ./...

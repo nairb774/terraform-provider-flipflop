@@ -1,0 +1,26 @@
+name: 'setup tfenv'
+description: 'Setup and configure tfenv.'
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout tfenv
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+      with:
+          repository: tfutils/tfenv
+          ref: v3.0.0
+          path: .tfenv
+          persist-credentials: false
+
+    - name: Extend Path
+      shell: bash
+      run: |
+        mv "${GITHUB_WORKSPACE}/.tfenv" "/opt/.tfenv"
+        echo "/opt/.tfenv/bin" >> "${GITHUB_PATH}"
+
+    - name: Install terraform
+      shell: bash
+      run: tfenv install
+
+    - name: Use terraform
+      shell: bash
+      run: tfenv use

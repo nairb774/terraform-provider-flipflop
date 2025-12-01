@@ -11,11 +11,10 @@ on:
       - 'package-lock.json'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   validate:
@@ -37,13 +36,9 @@ jobs:
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         with:
           go-version-file: 'go.mod'
-          cache: true
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@651471c36a6092792c552e8b1bef71e592b462d8 # v3.1.1
-        with:
-          terraform_version_file: '.terraform-version'
-          terraform_wrapper: false
+        uses: ./.github/actions/setup-tfenv
 
       - name: Install dependencies
         run: npm ci
