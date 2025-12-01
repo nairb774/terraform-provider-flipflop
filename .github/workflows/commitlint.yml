@@ -14,13 +14,12 @@ permissions:
 
 jobs:
   commitlint:
-    name: Validate Commit Messages
+    name: Validate PR Title
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Setup Node.js
@@ -32,8 +31,7 @@ jobs:
         run: |
           npm install --save-dev @commitlint/cli @commitlint/config-conventional
 
-      - name: Validate PR commits
+      - name: Validate PR title
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: npx commitlint --config .github/.commitlintrc.json --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: echo "$PR_TITLE" | npx commitlint --config .github/.commitlintrc.json --verbose
