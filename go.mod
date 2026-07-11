@@ -2,7 +2,7 @@ module github.com/nairb774/terraform-provider-flipflop
 
 go 1.25.8
 
-toolchain go1.26.3
+toolchain go1.26.4
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.18.0
